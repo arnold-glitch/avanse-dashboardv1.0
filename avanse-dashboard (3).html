@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avanse Funding Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235;
+    --border: #1e2d47; --accent: #3b82f6; --accent2: #10b981;
+    --accent3: #f59e0b; --accent4: #ef4444;
+    --text: #e2e8f0; --muted: #64748b; --lien: #6366f1; --unlien: #10b981;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image: linear-gradient(rgba(59,130,246,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(59,130,246,.03) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .container { max-width:1400px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+
+  /* HEADER */
+  header { padding:32px 24px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; position:relative; z-index:1; }
+  .logo-area { display:flex; align-items:center; gap:16px; }
+  .logo-badge { width:48px; height:48px; background:linear-gradient(135deg,var(--accent),#6366f1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:22px; color:white; box-shadow:0 0 20px rgba(59,130,246,.4); }
+  .header-title { font-family:'DM Serif Display',serif; font-size:24px; }
+  .header-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  .status-badge { display:flex; align-items:center; gap:6px; background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); border-radius:20px; padding:6px 14px; font-size:12px; color:var(--accent2); font-family:'DM Mono',monospace; }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--accent2); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+  .sync-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; display:flex; align-items:center; gap:6px; }
+  .sync-btn:hover { background:var(--border); border-color:var(--accent); color:var(--accent); }
+  .last-updated { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  /* MAIN */
+  main { padding:32px 24px; position:relative; z-index:1; }
+
+  /* CONFIG PANEL */
+  .config-panel { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; margin-bottom:24px; }
+  .config-title { font-size:14px; font-weight:600; margin-bottom:16px; }
+  .config-item label { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .config-item input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; font-family:'DM Mono',monospace; outline:none; transition:border-color .2s; }
+  .config-item input:focus { border-color:var(--accent); }
+  .config-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .btn-primary { background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:8px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; transition:all .2s; }
+  .btn-primary:hover { background:#2563eb; box-shadow:0 4px 12px rgba(59,130,246,.4); }
+  .btn-secondary { background:transparent; color:var(--muted); border:1px solid var(--border); padding:10px 20px; border-radius:8px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .btn-secondary:hover { color:var(--text); border-color:var(--muted); }
+  .info-box { background:rgba(59,130,246,.05); border:1px solid rgba(59,130,246,.2); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--muted); line-height:1.7; margin-top:16px; }
+  .info-box strong { color:var(--accent); }
+  .code-block { background:#0a0f1e; border:1px solid #1e2d47; border-radius:8px; padding:12px; margin:8px 0; font-family:'DM Mono',monospace; font-size:11px; color:#10b981; white-space:pre; overflow-x:auto; line-height:1.6; }
+
+  /* ERROR / LOADING */
+  #error-msg { display:none; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:14px 16px; font-size:13px; color:#fca5a5; margin-bottom:16px; }
+  #loading { display:none; text-align:center; padding:40px; color:var(--muted); font-size:14px; }
+
+  /* KPI CARDS */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-bottom:32px; }
+  .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; position:relative; overflow:hidden; transition:transform .2s,box-shadow .2s; }
+  .kpi-card:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.3); }
+  .kpi-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--card-accent,var(--accent)); }
+  .kpi-label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:12px; }
+  .kpi-value { font-family:'DM Serif Display',serif; font-size:32px; line-height:1; }
+  .kpi-sub { font-size:12px; color:var(--muted); margin-top:8px; font-family:'DM Mono',monospace; }
+  .kpi-icon { position:absolute; top:20px; right:20px; font-size:20px; opacity:.4; }
+
+  /* CHARTS */
+  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  @media(max-width:768px){ .charts-row{grid-template-columns:1fr;} }
+  .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; }
+  .chart-title { font-size:14px; font-weight:600; margin-bottom:20px; }
+  .donut-wrap { display:flex; align-items:center; gap:24px; }
+  .donut-legend { display:flex; flex-direction:column; gap:12px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .legend-val { font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); }
+  .bar-chart { display:flex; flex-direction:column; gap:14px; }
+  .bar-row { display:flex; align-items:center; gap:12px; }
+  .bar-label { font-size:12px; color:var(--muted); width:110px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar-fill { height:100%; border-radius:4px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+  .bar-amount { font-size:11px; font-family:'DM Mono',monospace; color:var(--muted); width:80px; text-align:right; flex-shrink:0; }
+
+  /* DATE FILTER */
+  .date-filter-bar { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .date-filter-label { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); flex-shrink:0; }
+  .date-filter-presets { display:flex; gap:6px; flex-wrap:wrap; }
+  .preset-btn { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .preset-btn:hover,.preset-btn.active { background:rgba(59,130,246,.12); border-color:var(--accent); color:var(--accent); }
+  .date-divider { width:1px; height:28px; background:var(--border); flex-shrink:0; }
+  .date-range-inputs { display:flex; align-items:center; gap:8px; }
+  .date-range-inputs input[type="date"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); font-size:12px; font-family:'DM Mono',monospace; outline:none; transition:border-color .2s; color-scheme:dark; }
+  .date-range-inputs input[type="date"]:focus { border-color:var(--accent); }
+  .date-sep { color:var(--muted); font-size:12px; }
+  .date-clear-btn { background:transparent; border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .date-clear-btn:hover { color:var(--accent4); border-color:var(--accent4); }
+  .date-field-select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--muted); font-size:12px; font-family:'DM Sans',sans-serif; outline:none; cursor:pointer; }
+  .active-filter-tag { display:inline-flex; align-items:center; gap:6px; background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.3); border-radius:20px; padding:4px 10px; font-size:11px; color:var(--accent); font-family:'DM Mono',monospace; }
+
+  /* TOOLBAR */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:12px; }
+  .section-title { font-family:'DM Serif Display',serif; font-size:20px; }
+  .section-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .search-wrap { position:relative; flex:1; min-width:200px; }
+  .search-wrap input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 16px 10px 38px; color:var(--text); font-size:13px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s; }
+  .search-wrap input:focus { border-color:var(--accent); }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:14px; }
+  .filter-btn { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 16px; color:var(--muted); font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .filter-btn:hover,.filter-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(59,130,246,.05); }
+
+  /* TABLE */
+  .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:24px; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:var(--surface2); border-bottom:1px solid var(--border); }
+  thead th { padding:14px 16px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); font-weight:500; white-space:nowrap; }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--surface2); }
+  td { padding:14px 16px; font-size:13px; vertical-align:middle; }
+  .user-cell { display:flex; align-items:center; gap:10px; }
+  .avatar { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0; font-family:'DM Mono',monospace; }
+  .user-name { font-weight:500; font-size:13px; }
+  .user-id { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+  .country-badge { display:inline-flex; align-items:center; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+  .amount { font-family:'DM Mono',monospace; font-size:13px; }
+  .amount.lien { color:var(--lien); }
+  .amount.unlien { color:var(--unlien); }
+  .amount.zero { color:var(--muted); }
+  .pct-badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:12px; font-family:'DM Mono',monospace; }
+  .doc-link { display:inline-flex; align-items:center; gap:4px; color:var(--accent); font-size:12px; text-decoration:none; padding:4px 8px; border:1px solid rgba(59,130,246,.3); border-radius:6px; transition:all .2s; }
+  .doc-link:hover { background:rgba(59,130,246,.1); }
+
+  @media(max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} td,th{padding:10px;} }
+  @media(max-width:600px){ .kpi-grid{grid-template-columns:1fr;} }
+  .fade-in { animation:fadeIn .5s ease forwards; opacity:0; }
+  @keyframes fadeIn { to{opacity:1} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-badge">A</div>
+    <div>
+      <div class="header-title">Avanse Funding Tracker</div>
+      <div class="header-sub">Partner Dashboard · Live Data</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-badge"><div class="status-dot"></div> Live</div>
+    <button class="sync-btn" onclick="loadData()">↻ Sync Data</button>
+    <span class="last-updated" id="last-updated">—</span>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+  <!-- CONFIG -->
+  <div class="config-panel fade-in">
+    <div class="config-title">⚙️ Google Sheet Connection</div>
+    <div class="config-item">
+      <label>Apps Script Web App URL</label>
+      <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+    <div class="config-actions">
+      <button class="btn-primary" onclick="loadData()">Connect &amp; Load Live Data</button>
+      <button class="btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+    </div>
+    <div class="info-box" id="setup-instructions">
+      <strong>📋 Setup instructions (one time, ~3 minutes):</strong><br><br>
+      <strong>Step 1:</strong> In your Google Sheet → click <strong>Extensions → Apps Script</strong><br><br>
+      <strong>Step 2:</strong> Delete any existing code and paste this:<br>
+      <div class="code-block">function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1).map(function(row) {
+    var obj = {};
+    headers.forEach(function(h, i) { obj[String(h).trim()] = row[i]; });
+    return obj;
+  });
+  var cb = e.parameter.callback;
+  var json = JSON.stringify(rows);
+  var out = cb
+    ? ContentService.createTextOutput(cb+'('+json+')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT)
+    : ContentService.createTextOutput(json)
+        .setMimeType(ContentService.MimeType.JSON);
+  return out;
+}</div>
+      <strong>Step 3:</strong> Click <strong>Deploy → New deployment</strong><br>
+      &nbsp;• Type → <strong>Web app</strong><br>
+      &nbsp;• Execute as → <strong>Me</strong><br>
+      &nbsp;• Who has access → <strong>Anyone</strong><br>
+      &nbsp;• Click <strong>Deploy</strong> → authorize → copy the Web App URL<br><br>
+      <strong>Step 4:</strong> Paste the URL above → click Connect &amp; Load Live Data ✓
+    </div>
+  </div>
+
+  <div id="error-msg"></div>
+  <div id="loading">⟳ Loading data from Google Sheets…</div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card fade-in" style="--card-accent:#6366f1"><div class="kpi-icon">💰</div><div class="kpi-label">Total Lien Funded</div><div class="kpi-value" id="kpi-lien">—</div><div class="kpi-sub" id="kpi-lien-count">—</div></div>
+    <div class="kpi-card fade-in" style="--card-accent:#10b981"><div class="kpi-icon">🏦</div><div class="kpi-label">Total Unlien Funded</div><div class="kpi-value" id="kpi-unlien">—</div><div class="kpi-sub" id="kpi-unlien-count">—</div></div>
+    <div class="kpi-card fade-in" style="--card-accent:#f59e0b"><div class="kpi-icon">⚖️</div><div class="kpi-label">Current Lien Balance</div><div class="kpi-value" id="kpi-lien-bal">—</div><div class="kpi-sub">Outstanding</div></div>
+    <div class="kpi-card fade-in" style="--card-accent:#3b82f6"><div class="kpi-icon">📊</div><div class="kpi-label">Current Unlien Balance</div><div class="kpi-value" id="kpi-unlien-bal">—</div><div class="kpi-sub">Outstanding</div></div>
+    <div class="kpi-card fade-in" style="--card-accent:#ec4899"><div class="kpi-icon">👤</div><div class="kpi-label">Total Students</div><div class="kpi-value" id="kpi-students">—</div><div class="kpi-sub" id="kpi-countries">—</div></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="chart-card fade-in">
+      <div class="chart-title">Lien vs Unlien Split</div>
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#1a2235" stroke-width="18"/>
+          <circle id="donut-lien" cx="60" cy="60" r="48" fill="none" stroke="#6366f1" stroke-width="18" stroke-dasharray="0 301.59" stroke-dashoffset="75.4" stroke-linecap="round" style="transition:stroke-dasharray 1s ease"/>
+          <circle id="donut-unlien" cx="60" cy="60" r="48" fill="none" stroke="#10b981" stroke-width="18" stroke-dasharray="0 301.59" stroke-dashoffset="75.4" stroke-linecap="round" style="transition:stroke-dasharray 1s ease"/>
+          <text x="60" y="55" text-anchor="middle" fill="#e2e8f0" font-size="12" font-family="DM Serif Display">Total</text>
+          <text id="donut-center" x="60" y="72" text-anchor="middle" fill="#e2e8f0" font-size="11" font-family="DM Mono">—</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div><div><div>Lien Funding</div><div class="legend-val" id="legend-lien">—</div></div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div><div><div>Unlien Funding</div><div class="legend-val" id="legend-unlien">—</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card fade-in">
+      <div class="chart-title">Funding by Student</div>
+      <div class="bar-chart" id="bar-chart"><div style="color:var(--muted);font-size:13px">Load data to view</div></div>
+    </div>
+  </div>
+
+  <!-- DATE FILTER -->
+  <div class="date-filter-bar fade-in">
+    <div class="date-filter-label">📅 Filter by Date</div>
+    <div class="date-filter-presets">
+      <button class="preset-btn active" onclick="setPreset('all',this)">All Time</button>
+      <button class="preset-btn" onclick="setPreset('this_month',this)">This Month</button>
+      <button class="preset-btn" onclick="setPreset('last_month',this)">Last Month</button>
+      <button class="preset-btn" onclick="setPreset('last_30',this)">Last 30 Days</button>
+      <button class="preset-btn" onclick="setPreset('last_90',this)">Last 90 Days</button>
+      <button class="preset-btn" onclick="setPreset('ytd',this)">Year to Date</button>
+    </div>
+    <div class="date-divider"></div>
+    <div class="date-range-inputs">
+      <span class="date-sep" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">From</span>
+      <input type="date" id="date-from" onchange="onCustomDate()">
+      <span class="date-sep">→</span>
+      <input type="date" id="date-to" onchange="onCustomDate()">
+      <button class="date-clear-btn" onclick="clearDates()">✕</button>
+    </div>
+    <div class="date-divider"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Field</span>
+      <select class="date-field-select" id="date-field" onchange="render()">
+        <option value="created_at">Joined</option>
+        <option value="date_lien">Lien Funded</option>
+        <option value="date_unlien">Unlien Funded</option>
+      </select>
+    </div>
+    <span id="active-date-tag" class="active-filter-tag" style="display:none"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="section-header">
+    <div><div class="section-title">Student Funding Details</div><div class="section-sub">All Avanse-funded students</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Search by name, ID, email…" oninput="render()">
+    </div>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('lien',this)">Lien Only</button>
+    <button class="filter-btn" onclick="setFilter('unlien',this)">Unlien Only</button>
+    <button class="filter-btn" onclick="setFilter('balance',this)">Has Balance</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Student</th><th>Country</th><th>Lien Funded</th><th>Unlien Funded</th>
+        <th>Lien Balance</th><th>Unlien Balance</th><th>% Funded</th><th>Loan Letter</th>
+      </tr></thead>
+      <tbody id="table-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">Connect your sheet or load sample data to begin</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</main>
+
+<script>
+// ─── STATE ─────────────────────────────────────────────────────────────────────
+const COLORS = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6'];
+let allData = [];
+let activeFilter = 'all';
+let dateFrom = null;
+let dateTo = null;
+
+// ─── SAMPLE DATA ───────────────────────────────────────────────────────────────
+const SAMPLE = [
+  {user_id:'user000658',name:'Hiren Patel',country:'',email:'hp03978@gmail.com',created_at:'12/3/2025',lien:0,unlien:4800,date_lien:'',date_unlien:'12/22/2025',bal_lien:0,bal_unlien:0,pct:'',notes:'',doc:''},
+  {user_id:'user342432',name:'Aryan Kunwar',country:'US',email:'aryankunwarr@gmail.com',created_at:'12/29/2025',lien:96123.13,unlien:0,date_lien:'1/30/2026',date_unlien:'',bal_lien:0.75,bal_unlien:0,pct:'',notes:'',doc:'https://drive.google.com/file/d/1xr86lfJakjNu5q0jex3RLXoIXBYERB77/view'},
+  {user_id:'user376886',name:'Amith Kumar Yadav Komal',country:'US',email:'amith.ai.71965@gmail.com',created_at:'11/27/2025',lien:98490,unlien:4347.30,date_lien:'12/23/2025',date_unlien:'1/22/2026',bal_lien:0,bal_unlien:2266.30,pct:'',notes:'',doc:'https://drive.google.com/file/d/1781GvNcLIFsY5PQ3eXqyOt-uIpJpBIqH/view'},
+  {user_id:'user510211',name:'Sai Teja Chalike',country:'UK',email:'saitejachalike5@gmail.com',created_at:'11/27/2025',lien:0,unlien:34484,date_lien:'',date_unlien:'12/23/2025',bal_lien:0,bal_unlien:151.92,pct:'',notes:'',doc:'https://drive.google.com/file/d/1flCyTHCHv2kl22EMjqCwe_Lg6cHwMZp6/view'},
+  {user_id:'user542752',name:'Prasad Pawar',country:'US',email:'prasadpawar0093@gmail.com',created_at:'11/27/2025',lien:0,unlien:19290,date_lien:'',date_unlien:'12/4/2025',bal_lien:0,bal_unlien:3121.03,pct:'',notes:'',doc:'https://drive.google.com/file/d/1flCyTHCHv2kl22EMjqCwe_Lg6cHwMZp6/view'},
+  {user_id:'user576152',name:'Manjyot Padam',country:'US',email:'manjyotsingh13@gmail.com',created_at:'12/8/2025',lien:15231,unlien:0,date_lien:'12/19/2025',date_unlien:'',bal_lien:0,bal_unlien:254.92,pct:'',notes:'',doc:'https://drive.google.com/file/d/1dukSEemFsV27rZGsvJxizu9P6Ksf9M5d/view'},
+];
+
+// ─── DATA HELPERS ──────────────────────────────────────────────────────────────
+const norm = s => String(s||'').toLowerCase().trim();
+const findKey = (obj, kw) => Object.keys(obj).find(k => norm(k).includes(norm(kw))) || null;
+const pm = v => { if(!v && v!==0) return 0; if(typeof v==='number') return v; return parseFloat(String(v).replace(/[$,\s]/g,''))||0; };
+
+function processRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('No data rows returned');
+  const s = rows[0];
+  const kU=findKey(s,'user_id'), kN=findKey(s,'name'), kC=findKey(s,'country'), kE=findKey(s,'email');
+  const kL=findKey(s,'lien funding'), kUL=findKey(s,'unlien funding');
+  const kDL=findKey(s,'date funded lien'), kDUL=findKey(s,'date funded unlien');
+  const kBL=findKey(s,'current lien balance'), kBUL=findKey(s,'current unlien balance');
+  const kP=findKey(s,'percent'), kNotes=findKey(s,'notes'), kDoc=findKey(s,'loan sanction');
+
+  allData = rows
+    .filter(r => kN && r[kN] && String(r[kN]).trim())
+    .map(r => ({
+      user_id:     String(r[kU]   ||''),
+      name:        String(r[kN]   ||''),
+      country:     String(r[kC]   ||''),
+      email:       String(r[kE]   ||''),
+      lien:        pm(r[kL]),
+      unlien:      pm(r[kUL]),
+      date_lien:   String(r[kDL]  ||''),
+      date_unlien: String(r[kDUL] ||''),
+      bal_lien:    pm(r[kBL]),
+      bal_unlien:  pm(r[kBUL]),
+      pct:         String(r[kP]   ||''),
+      notes:       String(r[kNotes]||''),
+      doc:         String(r[kDoc] ||''),
+    }));
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('last-updated').textContent = '✓ Live · ' + new Date().toLocaleTimeString();
+  document.getElementById('setup-instructions').style.display = 'none';
+  showError('');
+  render();
+}
+
+// ─── LOADER (JSONP — bypasses CORS on GitHub Pages) ────────────────────────────
+function loadData() {
+  const url = document.getElementById('script-url').value.trim();
+  if (!url) { showError('Please paste your Apps Script Web App URL first.'); return; }
+
+  showError('');
+  document.getElementById('loading').style.display = 'block';
+
+  // Remove old JSONP tag
+  const old = document.getElementById('_jsonp');
+  if (old) old.remove();
+
+  // Timeout
+  const timer = setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    showError('❌ Connection timed out. Make sure "Who has access" is set to Anyone in your Apps Script deployment.');
+  }, 12000);
+
+  // Global callback the script will call
+  window.__avanseData = function(rows) {
+    clearTimeout(timer);
+    try { processRows(rows); }
+    catch(e) { document.getElementById('loading').style.display='none'; showError('❌ '+e.message); }
+    delete window.__avanseData;
+  };
+
+  // Inject script tag — no CORS restrictions
+  const tag = document.createElement('script');
+  tag.id = '_jsonp';
+  tag.src = url + (url.includes('?') ? '&' : '?') + 'callback=__avanseData';
+  tag.onerror = () => {
+    clearTimeout(timer);
+    document.getElementById('loading').style.display = 'none';
+    showError('❌ Script load error. Double-check your Apps Script URL and that access is set to Anyone.');
+  };
+  document.head.appendChild(tag);
+}
+
+function loadSampleData() {
+  allData = SAMPLE;
+  document.getElementById('last-updated').textContent = 'Sample data loaded';
+  render();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+// ─── FORMATTING ────────────────────────────────────────────────────────────────
+const fmt = n => n===0 ? '$0' : n>=1000 ? '$'+(n/1000).toFixed(1)+'K' : '$'+n.toFixed(2);
+const fmtFull = n => '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const initials = name => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+// ─── FILTERING ─────────────────────────────────────────────────────────────────
+function parseDate(str) {
+  if (!str) return null;
+  const p = String(str).split('/');
+  if (p.length===3) return new Date(+p[2], +p[0]-1, +p[1]);
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+
+function getFilteredData() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const field = document.getElementById('date-field').value;
+  return allData.filter(r => {
+    if (search && !r.name.toLowerCase().includes(search) && !r.user_id.toLowerCase().includes(search) && !r.email.toLowerCase().includes(search)) return false;
+    if (activeFilter==='lien' && !r.lien) return false;
+    if (activeFilter==='unlien' && !r.unlien) return false;
+    if (activeFilter==='balance' && !r.bal_lien && !r.bal_unlien) return false;
+    if (dateFrom || dateTo) {
+      const d = parseDate(r[field]);
+      if (!d) return false;
+      if (dateFrom && d < dateFrom) return false;
+      if (dateTo && d > dateTo) return false;
+    }
+    return true;
+  });
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const data = getFilteredData();
+  renderKPIs(data);
+  renderCharts(data);
+  renderTable(data);
+}
+
+function renderKPIs(data) {
+  const tL=data.reduce((s,r)=>s+r.lien,0), tUL=data.reduce((s,r)=>s+r.unlien,0);
+  const tBL=data.reduce((s,r)=>s+r.bal_lien,0), tBUL=data.reduce((s,r)=>s+r.bal_unlien,0);
+  document.getElementById('kpi-lien').textContent = fmt(tL);
+  document.getElementById('kpi-lien-count').textContent = data.filter(r=>r.lien>0).length+' disbursements';
+  document.getElementById('kpi-unlien').textContent = fmt(tUL);
+  document.getElementById('kpi-unlien-count').textContent = data.filter(r=>r.unlien>0).length+' disbursements';
+  document.getElementById('kpi-lien-bal').textContent = fmt(tBL);
+  document.getElementById('kpi-unlien-bal').textContent = fmt(tBUL);
+  document.getElementById('kpi-students').textContent = data.length;
+  const countries = [...new Set(data.map(r=>r.country).filter(Boolean))];
+  document.getElementById('kpi-countries').textContent = countries.join(', ')||'—';
+
+  const total=tL+tUL, circ=301.59;
+  if (total>0) {
+    const lArc=(tL/total)*circ, uArc=(tUL/total)*circ;
+    document.getElementById('donut-lien').setAttribute('stroke-dasharray',`${lArc} ${circ}`);
+    document.getElementById('donut-unlien').setAttribute('stroke-dasharray',`${uArc} ${circ}`);
+    document.getElementById('donut-unlien').setAttribute('stroke-dashoffset',`${75.4-lArc}`);
+  }
+  document.getElementById('donut-center').textContent = fmt(total);
+  document.getElementById('legend-lien').textContent = fmtFull(tL);
+  document.getElementById('legend-unlien').textContent = fmtFull(tUL);
+}
+
+function renderCharts(data) {
+  const max = Math.max(...data.map(r=>r.lien+r.unlien), 1);
+  document.getElementById('bar-chart').innerHTML = data.slice(0,8).map(r => {
+    const lp=(r.lien/max*100), up=(r.unlien/max*100);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${r.name}">${r.name.split(' ')[0]}</div>
+      <div style="flex:1"><div style="height:10px;background:var(--surface2);border-radius:4px;overflow:hidden;display:flex">
+        <div class="bar-fill" style="width:${lp}%;background:#6366f1;border-radius:4px 0 0 4px"></div>
+        <div class="bar-fill" style="width:${up}%;background:#10b981;border-radius:0 4px 4px 0"></div>
+      </div></div>
+      <div class="bar-amount">${fmt(r.lien+r.unlien)}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted)">No data</div>';
+}
+
+function renderTable(data) {
+  if (!data.length) {
+    document.getElementById('table-body').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">No matching students found</td></tr>';
+    return;
+  }
+  document.getElementById('table-body').innerHTML = data.map((r,i) => {
+    const c=COLORS[i%COLORS.length];
+    const pct = r.pct ? `<span class="pct-badge" style="background:rgba(59,130,246,.1);color:var(--accent)">${r.pct}</span>` : '<span style="color:var(--muted)">—</span>';
+    const doc = r.doc ? `<a href="${r.doc}" target="_blank" class="doc-link">📄 View</a>` : '<span style="color:var(--muted);font-size:12px">—</span>';
+    return `<tr>
+      <td><div class="user-cell"><div class="avatar" style="background:${c}22;color:${c}">${initials(r.name)}</div><div><div class="user-name">${r.name}</div><div class="user-id">${r.user_id}</div></div></div></td>
+      <td>${r.country?`<span class="country-badge">${r.country}</span>`:'—'}</td>
+      <td><span class="amount ${r.lien>0?'lien':'zero'}">${r.lien>0?fmtFull(r.lien):'—'}</span></td>
+      <td><span class="amount ${r.unlien>0?'unlien':'zero'}">${r.unlien>0?fmtFull(r.unlien):'—'}</span></td>
+      <td><span class="amount ${r.bal_lien>0?'lien':'zero'}">${fmtFull(r.bal_lien)}</span></td>
+      <td><span class="amount ${r.bal_unlien>0?'unlien':'zero'}">${fmtFull(r.bal_unlien)}</span></td>
+      <td>${pct}</td>
+      <td>${doc}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── DATE FILTER ───────────────────────────────────────────────────────────────
+function toInputDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function setPreset(preset, btn) {
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tag = document.getElementById('active-date-tag');
+  if (preset==='all') { dateFrom=null; dateTo=null; document.getElementById('date-from').value=''; document.getElementById('date-to').value=''; tag.style.display='none'; }
+  else if (preset==='this_month') { dateFrom=new Date(today.getFullYear(),today.getMonth(),1); dateTo=new Date(today.getFullYear(),today.getMonth()+1,0); tag.textContent='This Month'; tag.style.display='inline-flex'; }
+  else if (preset==='last_month') { dateFrom=new Date(today.getFullYear(),today.getMonth()-1,1); dateTo=new Date(today.getFullYear(),today.getMonth(),0); tag.textContent='Last Month'; tag.style.display='inline-flex'; }
+  else if (preset==='last_30') { dateFrom=new Date(today-30*86400000); dateTo=today; tag.textContent='Last 30 Days'; tag.style.display='inline-flex'; }
+  else if (preset==='last_90') { dateFrom=new Date(today-90*86400000); dateTo=today; tag.textContent='Last 90 Days'; tag.style.display='inline-flex'; }
+  else if (preset==='ytd') { dateFrom=new Date(today.getFullYear(),0,1); dateTo=today; tag.textContent='Year to Date'; tag.style.display='inline-flex'; }
+  if (dateFrom) document.getElementById('date-from').value=toInputDate(dateFrom);
+  if (dateTo) document.getElementById('date-to').value=toInputDate(dateTo);
+  render();
+}
+
+function onCustomDate() {
+  const fv=document.getElementById('date-from').value, tv=document.getElementById('date-to').value;
+  dateFrom=fv?new Date(fv):null;
+  dateTo=tv?new Date(tv+'T23:59:59'):null;
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  const tag=document.getElementById('active-date-tag');
+  if (fv||tv) { tag.textContent=(fv||'…')+' → '+(tv||'…'); tag.style.display='inline-flex'; }
+  else tag.style.display='none';
+  render();
+}
+
+function clearDates() {
+  dateFrom=null; dateTo=null;
+  document.getElementById('date-from').value='';
+  document.getElementById('date-to').value='';
+  document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.getElementById('active-date-tag').style.display='none';
+  render();
+}
+
+function setFilter(f, btn) {
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// Start with sample data
+loadSampleData();
+</script>
+</body>
+</html>
