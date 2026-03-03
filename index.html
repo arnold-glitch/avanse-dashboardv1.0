@@ -49,6 +49,7 @@
   .btn-primary:hover { background:#2563eb; box-shadow:0 4px 12px rgba(59,130,246,.4); }
   .btn-secondary { background:transparent; color:var(--muted); border:1px solid var(--border); padding:10px 20px; border-radius:8px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
   .btn-secondary:hover { color:var(--text); border-color:var(--muted); }
+  .link-hint { font-size:12px; color:var(--muted); margin-top:10px; }
   .info-box { background:rgba(59,130,246,.05); border:1px solid rgba(59,130,246,.2); border-radius:10px; padding:14px 16px; font-size:12px; color:var(--muted); line-height:1.7; margin-top:16px; }
   .info-box strong { color:var(--accent); }
   .code-block { background:#0a0f1e; border:1px solid #1e2d47; border-radius:8px; padding:12px; margin:8px 0; font-family:'DM Mono',monospace; font-size:11px; color:#10b981; white-space:pre; overflow-x:auto; line-height:1.6; }
@@ -168,8 +169,10 @@
     </div>
     <div class="config-actions">
       <button class="btn-primary" onclick="loadData()">Connect &amp; Load Live Data</button>
+      <button class="btn-secondary" onclick="copyTeamLink()">Copy Team Link</button>
       <button class="btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
     </div>
+    <div class="link-hint" id="link-hint">Tip: Configure once, then share the generated team link so others auto-load live data.</div>
     <div class="info-box" id="setup-instructions">
       <strong>📋 Setup instructions (one time, ~3 minutes):</strong><br><br>
       <strong>Step 1:</strong> In your Google Sheet → click <strong>Extensions → Apps Script</strong><br><br>
@@ -293,6 +296,7 @@ let allData = [];
 let activeFilter = 'all';
 let dateFrom = null;
 let dateTo = null;
+let autoRefreshTimer = null;
 
 // ─── SAMPLE DATA ───────────────────────────────────────────────────────────────
 const SAMPLE = [
@@ -344,10 +348,11 @@ function processRows(rows) {
 }
 
 // ─── LOADER (JSONP — bypasses CORS on GitHub Pages) ────────────────────────────
-function loadData() {
-  const url = document.getElementById('script-url').value.trim();
+function loadData(customUrl = null) {
+  const url = (customUrl || document.getElementById('script-url').value).trim();
   if (!url) { showError('Please paste your Apps Script Web App URL first.'); document.getElementById('config-panel').classList.add('open'); return; }
   try { localStorage.setItem('avanse_url', url); } catch(e) {}
+  document.getElementById('script-url').value = url;
 
   showError('');
   document.getElementById('loading').style.display = 'block';
@@ -380,6 +385,25 @@ function loadData() {
     showError('❌ Script load error. Double-check your Apps Script URL and that access is set to Anyone.');
   };
   document.head.appendChild(tag);
+
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => loadData(url), 300000);
+}
+
+async function copyTeamLink() {
+  const url = document.getElementById('script-url').value.trim();
+  if (!url) {
+    showError('Please add your Apps Script URL before generating a team link.');
+    return;
+  }
+  const teamUrl = window.location.origin + window.location.pathname + '?source=' + encodeURIComponent(url);
+  try {
+    await navigator.clipboard.writeText(teamUrl);
+    document.getElementById('link-hint').textContent = '✅ Team link copied. Share it and teammates will load live data automatically.';
+    showError('');
+  } catch (e) {
+    document.getElementById('link-hint').textContent = '⚠️ Could not copy automatically. Manually share: ' + teamUrl;
+  }
 }
 
 function loadSampleData() {
@@ -570,8 +594,19 @@ function setFilter(f, btn) {
 }
 
 function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
+const params = new URLSearchParams(window.location.search);
+const _shared = params.get('source');
 const _saved = localStorage.getItem('avanse_url');
-if (_saved) { document.getElementById('script-url').value = _saved; loadData(); } else { loadSampleData(); }
+if (_shared) {
+  document.getElementById('script-url').value = _shared;
+  document.getElementById('link-hint').textContent = 'Loaded from shared team link. Live sync is enabled every 5 minutes.';
+  loadData(_shared);
+} else if (_saved) {
+  document.getElementById('script-url').value = _saved;
+  loadData(_saved);
+} else {
+  loadSampleData();
+}
 </script>
 </body>
 </html>
